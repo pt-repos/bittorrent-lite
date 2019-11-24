@@ -19,14 +19,6 @@ class ClientProcess implements Runnable {
         this.port = port;
     }
 
-/*
-    protected ClientProcess(Socket requestSocket) {
-        this.requestSocket = requestSocket;
-        this.host = requestSocket.getRemoteSocketAddress().toString();
-        this.port = requestSocket.getPort();
-    }
-*/
-
     @Override
     public void run() {
         // TODO: 11/24/2019
