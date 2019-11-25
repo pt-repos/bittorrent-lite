@@ -16,8 +16,7 @@ public class FileOwner {
 
         ServerSocket listener = null;
         try {
-//            int port = Integer.parseInt(args[0]);
-            int port = 8000;
+            int port = Integer.parseInt(args[0]);
             listener = new ServerSocket(port);
 
             while(true) {

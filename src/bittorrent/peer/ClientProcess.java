@@ -11,19 +11,32 @@ class ClientProcess implements Runnable {
     private Socket requestSocket;
     private String host;
     private int port;
+    private int peerId;
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
 
-    protected ClientProcess(String host, int port) {
+    ClientProcess(String host, int port, int peerId) {
         this.host = host;
         this.port = port;
+        this.peerId = peerId;
     }
 
     @Override
     public void run() {
         // TODO: 11/24/2019
         try {
-            requestSocket = new Socket(host, port);
+
+            boolean connectionEstablished = false;
+            do {
+                try {
+                    System.out.println("Trying connection to Peer @ [" + port + "]");
+                    requestSocket = new Socket(host, port);
+                    connectionEstablished = true;
+                } catch (Exception e) {
+//                    e.printStackTrace();
+                }
+            } while (!connectionEstablished);
+
             outputStream = new ObjectOutputStream(requestSocket.getOutputStream());
             outputStream.flush();
             inputStream = new ObjectInputStream(requestSocket.getInputStream());
