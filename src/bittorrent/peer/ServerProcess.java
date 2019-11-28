@@ -9,31 +9,18 @@ class ServerProcess implements Runnable {
 
     private Socket connection;
     private int neighborId;
-    private ObjectInputStream inputStream;
-    private ObjectOutputStream outputStream;
 
     ServerProcess(Socket connection) {
         this.connection = connection;
-    }
-
-    ServerProcess(Socket connection,
-                  ObjectInputStream inputStream,
-                  ObjectOutputStream outputStream,
-                  int neighborId) {
-
-        this.connection = connection;
-        this.inputStream = inputStream;
-        this.outputStream = outputStream;
-        this.neighborId = neighborId;
     }
 
     @Override
     public void run() {
         // TODO: 11/24/2019
         try {
-            outputStream = new ObjectOutputStream(connection.getOutputStream());
+            ObjectOutputStream outputStream = new ObjectOutputStream(connection.getOutputStream());
             outputStream.flush();
-            inputStream = new ObjectInputStream(connection.getInputStream());
+            ObjectInputStream inputStream = new ObjectInputStream(connection.getInputStream());
 
             this.neighborId = inputStream.readInt();
 
@@ -46,6 +33,8 @@ class ServerProcess implements Runnable {
                 String message = (String) inputStream.readObject();
                 System.out.println(message + " received from peer [" + neighborId + "]");
                 Thread.sleep(5000);
+
+                // TODO: 11/27/2019 message to break connection and exit loop
             }
         } catch (IOException e) {
             System.out.println("Disconnected with peer [" + neighborId + "]");

@@ -50,6 +50,8 @@ class ClientProcess implements Runnable {
 
                 outputStream.writeObject("ClientProcess: Hi");
                 outputStream.flush();
+
+                // TODO: 11/27/2019 message to break connection and exit loop 
             }
         } catch (SocketException e) {
             System.out.println("Connection with peer [" + port + "] lost");
