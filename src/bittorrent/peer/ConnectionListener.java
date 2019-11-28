@@ -6,11 +6,11 @@ import java.net.Socket;
 
 public class ConnectionListener implements Runnable {
     private ServerSocket listener;
-    private Peer peer;
+    private Peer self;
 
-    public ConnectionListener(ServerSocket listener, Peer peer) {
+    public ConnectionListener(ServerSocket listener, Peer self) {
         this.listener = listener;
-        this.peer = peer;
+        this.self = self;
     }
 
     @Override
@@ -18,7 +18,7 @@ public class ConnectionListener implements Runnable {
         try {
             while (true) {
                 Socket connection = listener.accept();
-                new Thread(new ServerProcess(connection)).start();
+                new Thread(new ServerProcess(connection, self)).start();
             }
         } catch (IOException e) {
             e.printStackTrace();

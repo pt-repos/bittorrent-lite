@@ -9,9 +9,11 @@ class ServerProcess implements Runnable {
 
     private Socket connection;
     private int neighborId;
+    private Peer self;
 
-    ServerProcess(Socket connection) {
+    ServerProcess(Socket connection, Peer self) {
         this.connection = connection;
+        this.self = self;
     }
 
     @Override
@@ -31,7 +33,7 @@ class ServerProcess implements Runnable {
                 outputStream.flush();
 
                 String message = (String) inputStream.readObject();
-                System.out.println(message + " received from peer [" + neighborId + "]");
+                System.out.println("message \'"+ message + "\' received from peer [" + neighborId + "]");
                 Thread.sleep(5000);
 
                 // TODO: 11/27/2019 message to break connection and exit loop

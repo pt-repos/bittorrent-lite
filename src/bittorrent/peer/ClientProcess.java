@@ -11,12 +11,12 @@ class ClientProcess implements Runnable {
     private Socket requestSocket;
     private String host;
     private int port;
-    private Peer peer;
+    private Peer self;
 
-    ClientProcess(String host, int port, Peer peer) {
+    ClientProcess(String host, int port, Peer self) {
         this.host = host;
         this.port = port;
-        this.peer = peer;
+        this.self = self;
     }
 
     @Override
@@ -39,14 +39,14 @@ class ClientProcess implements Runnable {
             outputStream.flush();
             ObjectInputStream inputStream = new ObjectInputStream(requestSocket.getInputStream());
 
-            outputStream.writeInt(peer.getPeerId());
+            outputStream.writeInt(self.getPeerId());
             outputStream.flush();
 
-            // TODO: 11/24/2019 infinite loop to handle connection of peer as a client.
+            // TODO: 11/24/2019 infinite loop to handle connection of self as a client.
             // current implementation is for test purposes
             while (true) {
                 String message = (String) inputStream.readObject();
-                System.out.println(message + " received from [" + port + "]");
+                System.out.println("message \'" + message + "\' received from [" + port + "]");
 
                 outputStream.writeObject("ClientProcess: Hi");
                 outputStream.flush();
@@ -54,7 +54,7 @@ class ClientProcess implements Runnable {
                 // TODO: 11/27/2019 message to break connection and exit loop 
             }
         } catch (SocketException e) {
-            System.out.println("Connection with peer [" + port + "] lost");
+            System.out.println("Connection with self [" + port + "] lost");
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

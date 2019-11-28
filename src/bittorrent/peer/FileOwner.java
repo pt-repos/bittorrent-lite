@@ -24,15 +24,4 @@ public class FileOwner extends Peer{
             e.printStackTrace();
         }
     }
-
-//    public static void main(String[] args) throws IOException {
-//        // TODO: 11/23/2019 Division of file into chunks
-//        try {
-//            int port = Integer.parseInt(args[0]);
-//            FileOwner fileOwner = new FileOwner(port);
-//            fileOwner.start();
-//        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-//            e.printStackTrace();
-//        }
-//    }
 }
