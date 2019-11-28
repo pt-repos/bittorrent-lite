@@ -11,12 +11,12 @@ class ClientProcess implements Runnable {
     private Socket requestSocket;
     private String host;
     private int port;
-    private int peerId;
+    private Peer peer;
 
-    ClientProcess(String host, int port, int peerId) {
+    ClientProcess(String host, int port, Peer peer) {
         this.host = host;
         this.port = port;
-        this.peerId = peerId;
+        this.peer = peer;
     }
 
     @Override
@@ -39,7 +39,7 @@ class ClientProcess implements Runnable {
             outputStream.flush();
             ObjectInputStream inputStream = new ObjectInputStream(requestSocket.getInputStream());
 
-            outputStream.writeInt(peerId);
+            outputStream.writeInt(peer.getPeerId());
             outputStream.flush();
 
             // TODO: 11/24/2019 infinite loop to handle connection of peer as a client.

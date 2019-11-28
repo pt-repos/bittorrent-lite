@@ -6,9 +6,11 @@ import java.net.Socket;
 
 public class ConnectionListener implements Runnable {
     private ServerSocket listener;
+    private Peer peer;
 
-    public ConnectionListener(ServerSocket listener) {
+    public ConnectionListener(ServerSocket listener, Peer peer) {
         this.listener = listener;
+        this.peer = peer;
     }
 
     @Override
