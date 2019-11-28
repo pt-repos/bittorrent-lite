@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-class ConnectionListener implements Runnable {
-    ServerSocket listener;
+public class ConnectionListener implements Runnable {
+    private ServerSocket listener;
 
-    ConnectionListener(ServerSocket listener) {
+    public ConnectionListener(ServerSocket listener) {
         this.listener = listener;
     }
 
@@ -15,8 +15,8 @@ class ConnectionListener implements Runnable {
     public void run() {
         try {
             while (true) {
-                Socket socket = listener.accept();
-                new Thread(new ServerProcess(socket)).start();
+                Socket connection = listener.accept();
+                new Thread(new ServerProcess(connection)).start();
             }
         } catch (IOException e) {
             e.printStackTrace();

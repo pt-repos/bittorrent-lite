@@ -12,8 +12,6 @@ class ClientProcess implements Runnable {
     private String host;
     private int port;
     private int peerId;
-    private ObjectInputStream inputStream;
-    private ObjectOutputStream outputStream;
 
     ClientProcess(String host, int port, int peerId) {
         this.host = host;
@@ -37,9 +35,12 @@ class ClientProcess implements Runnable {
                 }
             } while (!connectionEstablished);
 
-            outputStream = new ObjectOutputStream(requestSocket.getOutputStream());
+            ObjectOutputStream outputStream = new ObjectOutputStream(requestSocket.getOutputStream());
             outputStream.flush();
-            inputStream = new ObjectInputStream(requestSocket.getInputStream());
+            ObjectInputStream inputStream = new ObjectInputStream(requestSocket.getInputStream());
+
+            outputStream.writeInt(peerId);
+            outputStream.flush();
 
             // TODO: 11/24/2019 infinite loop to handle connection of peer as a client.
             // current implementation is for test purposes
@@ -47,7 +48,7 @@ class ClientProcess implements Runnable {
                 String message = (String) inputStream.readObject();
                 System.out.println(message + " received from [" + port + "]");
 
-                outputStream.writeObject("Hi");
+                outputStream.writeObject("ClientProcess: Hi");
                 outputStream.flush();
             }
         } catch (SocketException e) {
