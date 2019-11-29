@@ -25,3 +25,6 @@ hs_err_pid*
 # Ide Files
 *.idea
 *.iml
+
+# directory for storing p2p transfer files and chunks.
+files/
