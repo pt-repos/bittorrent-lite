@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.*;
 
 class ClientProcess implements Runnable {
@@ -32,27 +33,27 @@ class ClientProcess implements Runnable {
     }
 
     private void requestNewChunk() throws IOException, ClassNotFoundException {
-        /*
-        get available bits in neighbor needed by self.
-        required_bits = (myBitSet ^ neighborBitSet) & neighborBitSet
-        */
-        BitSet neighborBitField = getNeighborBitField();
-        BitSet selfBitField = self.getBitField();
-        selfBitField.xor(neighborBitField);
-        neighborBitField.and(selfBitField);
-
-        if (neighborBitField.length() == 0) {
-            System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
-            sendStandbyMessage();
-            return;
-        }
-
         while (true) {
+            /*
+            get available bits in neighbor needed by self.
+            required_bits = (myBitSet ^ neighborBitSet) & neighborBitSet
+            */
+            BitSet neighborBitField = getNeighborBitField();
+            BitSet selfBitField = self.getBitField();
+            selfBitField.xor(neighborBitField);
+            neighborBitField.and(selfBitField);
+
+            if (neighborBitField.length() == 0) {
+                System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
+                sendStandbyMessage();
+                return;
+            }
+
             for (int i = neighborBitField.nextSetBit(0); i >= 0;
                     i = neighborBitField.nextSetBit(i+1)) {
 
                 int random = new Random().nextInt(100);
-                if (random < 20) {
+                if (random < 10 && !self.checkAndUpdateDownloadTracker(i)) {
                     System.out.println("Requesting chunk:" + i + " from peer: " + neighborPort);
                     outputStream.writeObject(MessageType.GET_CHUNK);
                     outputStream.writeInt(i);
@@ -71,6 +72,7 @@ class ClientProcess implements Runnable {
     private void receiveChunk(int chunkId) {
         System.out.println("Received chunk: " + chunkId + " from peer: " + neighborPort);
         self.setBitFieldIndex(chunkId);
+        self.getDownloadTracker().remove(self.getPeerId(), chunkId);
     }
 
     private void requestBitFieldLength() throws IOException {
@@ -87,6 +89,7 @@ class ClientProcess implements Runnable {
                 try {
                     System.out.println("Trying connection to Peer @ [" + neighborPort + "]");
                     requestSocket = new Socket(host, neighborPort);
+                    requestSocket.setSoTimeout(3000);
                     connectionEstablished = true;
                 } catch (Exception e) {
 //                    e.printStackTrace();
@@ -136,6 +139,9 @@ class ClientProcess implements Runnable {
 
                 // TODO: 11/27/2019 message to break connection and exit loop 
             }
+        } catch (SocketTimeoutException e) {
+            System.out.println("Socket timeout");
+            self.getDownloadTracker().remove(self.getPeerId());
         } catch (SocketException e) {
             System.out.println("Connection with self [" + neighborPort + "] lost");
         } catch (IOException | ClassNotFoundException | InterruptedException e) {
