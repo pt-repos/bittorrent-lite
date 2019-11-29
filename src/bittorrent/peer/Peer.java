@@ -2,6 +2,7 @@ package bittorrent.peer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.BitSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +14,7 @@ public class Peer {
     private int fileOwnerPort;
     private int downloadPeerPort;
     private Set<Integer> chunkSet;
+    private BitSet bitField;
 
     Peer(int peerId) {
         this(peerId, 0, 0);
@@ -31,6 +33,25 @@ public class Peer {
 
     Set<Integer> getChunkSet() {
         return chunkSet;
+    }
+
+    BitSet getBitField() {
+        if (null != this.bitField) {
+            return (BitSet) this.bitField.clone();
+        }
+        return null;
+    }
+
+    synchronized void setBitField(BitSet bitField) {
+        this.bitField = bitField;
+    }
+
+    synchronized void setBitFieldIndex(int bitIndex) {
+        this.bitField.set(bitIndex);
+    }
+
+    synchronized void clearBitFieldIndex(int bitIndex) {
+        this.bitField.clear(bitIndex);
     }
 
     public void start() throws IOException {

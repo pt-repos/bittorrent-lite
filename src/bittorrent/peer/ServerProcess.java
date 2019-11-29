@@ -27,6 +27,22 @@ class ServerProcess implements Runnable {
         outputStream.flush();
     }
 
+    void sendBitField() throws IOException {
+        System.out.println("Sending bitField to peer [" + neighborId + "]");
+        outputStream.writeObject(self.getBitField());
+        outputStream.flush();
+    }
+
+    void sendBitFieldLength() throws IOException {
+        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
+        try {
+            outputStream.writeInt(self.getBitField().length());
+        } catch (NullPointerException e) {
+            outputStream.writeInt(-1);
+        }
+        outputStream.flush();
+    }
+
     @Override
     public void run() {
         // TODO: 11/24/2019
@@ -47,6 +63,11 @@ class ServerProcess implements Runnable {
                     case GET_AVAILABLE_CHUNKS:
                         System.out.println("Sending chunkSet to peer [" + neighborId + "]");
                         outputStream.writeObject(self.getChunkSet());
+                        outputStream.flush();
+                        break;
+
+                    case BIT_FIELD:
+                        sendBitField();
                         break;
 
                     case GET_CHUNK:
@@ -57,6 +78,11 @@ class ServerProcess implements Runnable {
                     case STANDBY:
                         outputStream.writeObject(MessageType.STANDBY);
                         outputStream.flush();
+                        break;
+
+                    case BIT_FIELD_LENGTH:
+                        sendBitFieldLength();
+                        break;
                 }
 
                 // TODO: 11/27/2019 message to break connection and exit loop

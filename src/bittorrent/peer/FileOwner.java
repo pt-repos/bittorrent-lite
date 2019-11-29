@@ -2,6 +2,7 @@ package bittorrent.peer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.BitSet;
 import java.util.Set;
 
 public class FileOwner extends Peer{
@@ -14,10 +15,18 @@ public class FileOwner extends Peer{
         // TODO: 11/28/2019 temporary implementation for the purpose of
         // establishing messaging and requesting chunks.
 
-        Set<Integer> chunkSet = this.getChunkSet();
-        for(int i = 0; i < 100; i++) {
-            chunkSet.add(i);
-        }
+        int fileSize = 10_000_000;
+        int chunkSize = 100_000;
+        int nChunks = fileSize/chunkSize;
+
+        BitSet bitField = new BitSet(nChunks);
+        bitField.set(0, nChunks);
+        this.setBitField(bitField);
+
+//        Set<Integer> chunkSet = this.getChunkSet();
+//        for(int i = 0; i < nChunks; i++) {
+//            chunkSet.add(i);
+//        }
     }
 
     @Override
