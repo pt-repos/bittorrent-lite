@@ -52,7 +52,6 @@ class ServerProcess implements Runnable {
             inputStream = new ObjectInputStream(connection.getInputStream());
 
             this.neighborId = inputStream.readInt();
-
             System.out.println("received CONNECTION from peer [" + neighborId + "]");
 
             while (true) {
@@ -60,12 +59,6 @@ class ServerProcess implements Runnable {
                 MessageType messageType = (MessageType) inputStream.readObject();
 
                 switch (messageType) {
-                    case GET_AVAILABLE_CHUNKS:
-                        System.out.println("Sending chunkSet to peer [" + neighborId + "]");
-                        outputStream.writeObject(self.getChunkSet());
-                        outputStream.flush();
-                        break;
-
                     case BIT_FIELD:
                         sendBitField();
                         break;

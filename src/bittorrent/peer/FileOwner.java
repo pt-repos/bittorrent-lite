@@ -3,7 +3,6 @@ package bittorrent.peer;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.BitSet;
-import java.util.Set;
 
 public class FileOwner extends Peer{
 
@@ -22,11 +21,6 @@ public class FileOwner extends Peer{
         BitSet bitField = new BitSet(nChunks);
         bitField.set(0, nChunks);
         this.setBitField(bitField);
-
-//        Set<Integer> chunkSet = this.getChunkSet();
-//        for(int i = 0; i < nChunks; i++) {
-//            chunkSet.add(i);
-//        }
     }
 
     @Override

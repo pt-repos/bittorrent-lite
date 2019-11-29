@@ -24,14 +24,6 @@ class ClientProcess implements Runnable {
         this.self = self;
     }
 
-    private Set<Integer> getChunksAvailableAtNeighbor() throws ClassNotFoundException, IOException {
-
-        outputStream.writeObject(MessageType.GET_AVAILABLE_CHUNKS);
-        outputStream.flush();
-
-        return (Set<Integer>) inputStream.readObject();
-    }
-
     private BitSet getNeighborBitField() throws IOException, ClassNotFoundException {
         outputStream.writeObject(MessageType.BIT_FIELD);
         outputStream.flush();
@@ -40,11 +32,10 @@ class ClientProcess implements Runnable {
     }
 
     private void requestNewChunk() throws IOException, ClassNotFoundException {
-//        Set<Integer> availableChunks = getChunksAvailableAtNeighbor();
-//        availableChunks.removeAll(self.getChunkSet());
-
-//      get available bits in neighbor needed by self.
-//      required_bits = (myBitSet XOR neighborBitSet) AND NeighborBitSet
+        /*
+        get available bits in neighbor needed by self.
+        required_bits = (myBitSet ^ neighborBitSet) & neighborBitSet
+        */
         BitSet neighborBitField = getNeighborBitField();
         BitSet selfBitField = self.getBitField();
         selfBitField.xor(neighborBitField);
@@ -79,7 +70,6 @@ class ClientProcess implements Runnable {
 
     private void receiveChunk(int chunkId) {
         System.out.println("Received chunk: " + chunkId + " from peer: " + neighborPort);
-//        self.getChunkSet().add(chunkId);
         self.setBitFieldIndex(chunkId);
     }
 
@@ -116,13 +106,10 @@ class ClientProcess implements Runnable {
             // current implementation is for test purposes
             while (true) {
 
-//                System.out.println("###---1");
                 if (null == self.getBitField()) {
-//                    System.out.println("Requesting bit field length");
                     requestBitFieldLength();
                 }
                 else {
-//                    System.out.println("Requesting new chunk");
                     requestNewChunk();
                 }
 
