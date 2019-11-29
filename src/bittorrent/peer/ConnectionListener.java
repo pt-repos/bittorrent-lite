@@ -8,7 +8,7 @@ public class ConnectionListener implements Runnable {
     private ServerSocket listener;
     private Peer self;
 
-    public ConnectionListener(ServerSocket listener, Peer self) {
+    ConnectionListener(ServerSocket listener, Peer self) {
         this.listener = listener;
         this.self = self;
     }

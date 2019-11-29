@@ -22,7 +22,7 @@ public class PeerInitializer {
         } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
             System.out.println("Invalid arguments");
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 }
