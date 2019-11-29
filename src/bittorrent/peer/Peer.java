@@ -2,6 +2,9 @@ package bittorrent.peer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.BitSet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -10,35 +13,67 @@ public class Peer {
     private int peerId;
     private int fileOwnerPort;
     private int downloadPeerPort;
+    private BitSet bitField;
+    private Map<Integer, Integer> downloadTracker;
+
+    Peer(int peerId) {
+        this(peerId, 0, 0);
+    }
 
     public Peer(int peerId, int fileOwnerPort, int downloadPeerPort) {
         this.peerId = peerId;
         this.fileOwnerPort = fileOwnerPort;
         this.downloadPeerPort = downloadPeerPort;
+        this.downloadTracker = new ConcurrentHashMap<>();
     }
 
-    public void setPeerId(int peerId) {
-        this.peerId = peerId;
+    int getPeerId() {
+        return peerId;
     }
 
-    public void setFileOwnerPort(int fileOwnerPort) {
-        this.fileOwnerPort = fileOwnerPort;
+    BitSet getBitField() {
+        if (null != this.bitField) {
+            return (BitSet) this.bitField.clone();
+        }
+        return null;
     }
 
-    public void setDownloadPeerPort(int downloadPeerPort) {
-        this.downloadPeerPort = downloadPeerPort;
+    synchronized void setBitField(BitSet bitField) {
+        this.bitField = bitField;
+    }
+
+    synchronized void setBitFieldIndex(int bitIndex) {
+        this.bitField.set(bitIndex);
+    }
+
+    synchronized void clearBitFieldIndex(int bitIndex) {
+        this.bitField.clear(bitIndex);
+    }
+
+    Map<Integer, Integer> getDownloadTracker() {
+        return this.downloadTracker;
+    }
+
+    synchronized boolean checkAndUpdateDownloadTracker(int val) {
+        if (this.downloadTracker.containsValue(val)) {
+            return true;
+        } else {
+            this.downloadTracker.put(this.peerId, val);
+            return false;
+        }
     }
 
     public void start() throws IOException {
         try {
             ExecutorService executorService = Executors.newFixedThreadPool(5);
             ServerSocket listener = new ServerSocket(peerId);
-            executorService.submit(new ConnectionListener(listener));
+            executorService.submit(new ConnectionListener(listener, this));
 
             String host = "localhost";
             System.out.println("Trying to connect to FileOwner @ [" + fileOwnerPort + "]");
+
             try {
-                Thread peerAsClientToFileOwner = new Thread(new ClientProcess(host, fileOwnerPort, peerId));
+                Thread peerAsClientToFileOwner = new Thread(new ClientProcess(host, fileOwnerPort, this));
                 executorService.submit(peerAsClientToFileOwner);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -46,7 +81,7 @@ public class Peer {
 
             System.out.println("Trying to connect to Download Neighbor @ [" + downloadPeerPort + "]");
             try {
-                Thread peerAsClientToPeer = new Thread(new ClientProcess(host, downloadPeerPort, peerId));
+                Thread peerAsClientToPeer = new Thread(new ClientProcess(host, downloadPeerPort, this));
                 executorService.submit(peerAsClientToPeer);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -55,25 +90,6 @@ public class Peer {
             throw e;
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
-            throw new Exception("Invalid Number of Arguments");
-        }
-
-        try {
-            int fileOwnerPort = Integer.parseInt(args[0]);
-            int peerId = Integer.parseInt(args[1]);
-            int downloadPeerPort = Integer.parseInt(args[2]);
-
-            Peer peer = new Peer(peerId, fileOwnerPort, downloadPeerPort);
-            peer.start();
-        } catch(NumberFormatException e) {
-            System.out.println("Invalid arguments");
-        } catch(IOException e) {
-            System.out.println(e);
         }
     }
 }
