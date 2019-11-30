@@ -1,5 +1,6 @@
 package bittorrent.peer;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.BitSet;
@@ -79,6 +80,13 @@ public class Peer {
 
     public void start() throws IOException {
         try {
+
+
+            File directory = new File(String.format("./src/main/files/%d/", this.peerId));
+            if (!directory.exists()) {
+                directory.mkdir();
+            }
+
             ExecutorService executorService = Executors.newFixedThreadPool(5);
             ServerSocket listener = new ServerSocket(peerId);
             executorService.submit(new ConnectionListener(listener, this));
