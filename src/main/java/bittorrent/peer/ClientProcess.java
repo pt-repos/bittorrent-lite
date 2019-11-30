@@ -17,12 +17,16 @@ class ClientProcess implements Runnable {
     private Peer self;
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
+    private Properties properties;
     private boolean receivedAll;
+    private int nChunks;
 
     ClientProcess(String host, int neighborPort, Peer self) {
         this.host = host;
         this.neighborPort = neighborPort;
         this.self = self;
+        this.properties = self.getConfigProperties();
+        this.nChunks = Integer.parseInt(properties.getProperty("chunk.count"));
         this.receivedAll = false;
     }
 
@@ -49,9 +53,10 @@ class ClientProcess implements Runnable {
 
                 BitSet bitField = self.getBitField();
 
-                if (bitField.cardinality() == bitField.length()) {
+                if (bitField.cardinality() == nChunks) {
+//                    System.out.println(String.format("CARDINALITY: %d, NCHUNKS: %d", bitField.cardinality(), nChunks));
                     receivedAll = true;
-                    self.mergeChunksIntoFile(bitField.length());
+                    self.mergeChunksIntoFile(nChunks);
                     sendShutDownMessage();
                 } else {
                     sendStandbyMessage();
@@ -59,18 +64,33 @@ class ClientProcess implements Runnable {
                 return;
             }
 
+            List<Integer> availableChunks = new ArrayList<>();
             for (int i = neighborBitField.nextSetBit(0); i >= 0;
-                    i = neighborBitField.nextSetBit(i+1)) {
-
-                int random = new Random().nextInt(100);
-                if (random < 10 && !self.checkAndUpdateDownloadTracker(i)) {
-                    System.out.println("Requesting chunk:" + i + " from peer: " + neighborPort);
-                    outputStream.writeObject(MessageType.GET_CHUNK);
-                    outputStream.writeInt(i);
-                    outputStream.flush();
-                    return;
-                }
+                 i = neighborBitField.nextSetBit(i+1)) {
+                availableChunks.add(i);
             }
+            int randomIndex = new Random().nextInt(availableChunks.size());
+            int chunkId = availableChunks.get(randomIndex);
+            if (!self.checkAndUpdateDownloadTracker(chunkId)) {
+                System.out.println("Requesting chunk:" + chunkId + " from peer: " + neighborPort);
+                outputStream.writeObject(MessageType.GET_CHUNK);
+                outputStream.writeInt(chunkId);
+                outputStream.flush();
+                return;
+            }
+
+//            for (int i = neighborBitField.nextSetBit(0); i >= 0;
+//                    i = neighborBitField.nextSetBit(i+1)) {
+//
+//                int random = new Random().nextInt(100);
+//                if (random < 10 && !self.checkAndUpdateDownloadTracker(i)) {
+//                    System.out.println("Requesting chunk:" + i + " from peer: " + neighborPort);
+//                    outputStream.writeObject(MessageType.GET_CHUNK);
+//                    outputStream.writeInt(i);
+//                    outputStream.flush();
+//                    return;
+//                }
+//            }
         }
     }
 
@@ -89,7 +109,11 @@ class ClientProcess implements Runnable {
         System.out.println("Received chunk: " + chunkId + " from peer: " + neighborPort);
 
         int bufferSize = (int) inputStream.readLong();
-        String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
+        String fileName = String.format(
+                properties.getProperty("dir.path.format") + properties.getProperty("chunk.name.format"),
+                self.getPeerId(),
+                properties.getProperty("file.name"),
+                chunkId);
         FileOutputStream fileOutputStream = new FileOutputStream(fileName);
         byte[] buffer = new byte[bufferSize];
         int bytesRead;
@@ -109,10 +133,10 @@ class ClientProcess implements Runnable {
         }
     }
 
-    private void requestBitFieldLength() throws IOException {
-        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
-        outputStream.flush();
-    }
+//    private void requestBitFieldLength() throws IOException {
+//        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
+//        outputStream.flush();
+//    }
 
     @Override
     public void run() {
@@ -141,18 +165,17 @@ class ClientProcess implements Runnable {
             outputStream.writeInt(self.getPeerId());
             outputStream.flush();
 
-            // TODO: 11/24/2019 infinite loop to handle connection of self as a client.
-            // current implementation is for test purposes
             while (!receivedAll) {
                 Thread.sleep(300);
                 try {
-                    if (null == self.getBitField()) {
-                        requestBitFieldLength();
-                    } else {
-                        requestNewChunk();
-                    }
+//                    if (null == self.getBitField()) {
+//                        requestBitFieldLength();
+//                    } else {
+//                        requestNewChunk();
+//                    }
+                    requestNewChunk();
 
-                    System.out.println("Waiting for message from server @ [" + neighborPort + "]");
+//                    System.out.println("Waiting for message from server @ [" + neighborPort + "]");
                     MessageType messageType = (MessageType) inputStream.readObject();
 
                     switch (messageType) {
@@ -162,21 +185,21 @@ class ClientProcess implements Runnable {
                             break;
 
                         case STANDBY:
-                            Thread.sleep(2000);
+                            Thread.sleep(600);
                             break;
 
-                        case BIT_FIELD_LENGTH:
-                            int bitFieldSize = inputStream.readInt();
-                            if (bitFieldSize > 0 && null == self.getBitField()) {
-                                self.setBitField(new BitSet(bitFieldSize));
-                            }
-                            break;
+//                        case BIT_FIELD_LENGTH:
+//                            int bitFieldSize = inputStream.readInt();
+//                            if (bitFieldSize > 0 && null == self.getBitField()) {
+//                                self.setBitField(new BitSet(bitFieldSize));
+//                                nChunks = bitFieldSize;
+//                            }
+//                            break;
                     }
                 } catch (SocketTimeoutException e) {
                     System.out.println("Socket timeout: Peer [" + neighborPort + "]");
                     self.getDownloadTracker().remove(self.getPeerId());
                 }
-                // TODO: 11/27/2019 message to break connection and exit loop 
             }
         } catch (SocketTimeoutException e) {
             System.out.println("###Socket timeout: Peer [" + neighborPort + "]");

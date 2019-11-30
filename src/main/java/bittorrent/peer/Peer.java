@@ -5,10 +5,7 @@ import bittorrent.util.FileUtil;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,15 +17,17 @@ public class Peer {
     private int downloadPeerPort;
     private BitSet bitField;
     private Map<Integer, Integer> downloadTracker;
+    Properties configProperties;
 
-    Peer(int peerId) {
-        this(peerId, 0, 0);
+    Peer(int peerId, Properties configProperties) {
+        this(peerId, 0, 0, configProperties);
     }
 
-    public Peer(int peerId, int fileOwnerPort, int downloadPeerPort) {
+    public Peer(int peerId, int fileOwnerPort, int downloadPeerPort, Properties configProperties) {
         this.peerId = peerId;
         this.fileOwnerPort = fileOwnerPort;
         this.downloadPeerPort = downloadPeerPort;
+        this.configProperties = configProperties;
         this.downloadTracker = new ConcurrentHashMap<>();
     }
 
@@ -68,28 +67,40 @@ public class Peer {
         }
     }
 
+    Properties getConfigProperties() {
+        return this.configProperties;
+    }
+
     void mergeChunksIntoFile(int nChunks) throws IOException {
         // TODO: 11/29/2019 cleaner implementation. this is only temporary
-        String into = String.format("./src/main/files/%d/%s", this.peerId, "cn-book.pdf");
-        List<File> files = new ArrayList<>();
+//        String into = String.format("./src/main/files/%d/%s", this.peerId, "cn-book.pdf");
 
+        String into = String.format(
+                configProperties.getProperty("file.path.format"),
+                this.peerId,
+                configProperties.getProperty("file.name")
+        );
+
+        List<File> files = new ArrayList<>();
         for (int i = 0; i < nChunks; i++) {
-            String filePartName = String.format("%s.%03d", into, i);
+            String filePartName = String.format(
+                    configProperties.getProperty("chunk.name.format"), into, i);
             files.add(new File(filePartName));
         }
-        System.out.println("size: " + files.size());
-
         FileUtil.mergeFiles(files, new File(into));
     }
 
     public void start() throws IOException {
         try {
+            File directory = new File(String.format(
+                    configProperties.getProperty("dir.path.format"), this.peerId));
 
-
-            File directory = new File(String.format("./src/main/files/%d/", this.peerId));
             if (!directory.exists()) {
                 directory.mkdir();
             }
+
+            int nChunks = Integer.parseInt(configProperties.getProperty("chunk.count"));
+            this.setBitField(new BitSet(nChunks));
 
             ExecutorService executorService = Executors.newFixedThreadPool(5);
             ServerSocket listener = new ServerSocket(peerId);

@@ -4,6 +4,7 @@ import bittorrent.MessageType;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Properties;
 
 class ServerProcess implements Runnable {
 
@@ -12,13 +13,15 @@ class ServerProcess implements Runnable {
     private Peer self;
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
+    private Properties properties;
 
     ServerProcess(Socket connection, Peer self) {
         this.connection = connection;
         this.self = self;
+        this.properties = self.getConfigProperties();
     }
 
-    void sendChunk(int chunkId) throws IOException {
+    private void sendChunk(int chunkId) throws IOException {
         System.out.println("Sending chunk: " + chunkId + "to peer: " + neighborId);
 
 
@@ -26,7 +29,12 @@ class ServerProcess implements Runnable {
         BufferedInputStream bufferedInputStream = null;
         DataInputStream dataInputStream = null;
         try {
-            String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
+//            String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
+            String fileName = String.format(
+                    properties.getProperty("dir.path.format") + properties.getProperty("chunk.name.format"),
+                    self.getPeerId(),
+                    properties.getProperty("file.name"),
+                    chunkId);
             File file = new File(fileName);
             long bufferSize = file.length();
             byte[] buffer = new byte[(int) bufferSize];
@@ -49,25 +57,24 @@ class ServerProcess implements Runnable {
         }
     }
 
-    void sendBitField() throws IOException {
+    private void sendBitField() throws IOException {
         System.out.println("Sending bitField to peer [" + neighborId + "]");
         outputStream.writeObject(self.getBitField());
         outputStream.flush();
     }
 
-    void sendBitFieldLength() throws IOException {
-        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
-        try {
-            outputStream.writeInt(self.getBitField().length());
-        } catch (NullPointerException e) {
-            outputStream.writeInt(-1);
-        }
-        outputStream.flush();
-    }
+//    private void sendBitFieldLength() throws IOException {
+//        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
+//        try {
+//            outputStream.writeInt(self.getBitField().length());
+//        } catch (NullPointerException e) {
+//            outputStream.writeInt(-1);
+//        }
+//        outputStream.flush();
+//    }
 
     @Override
     public void run() {
-        // TODO: 11/24/2019
         try {
             outputStream = new ObjectOutputStream(connection.getOutputStream());
             outputStream.flush();
@@ -77,7 +84,7 @@ class ServerProcess implements Runnable {
             System.out.println("received CONNECTION from peer [" + neighborId + "]");
 
             while (true) {
-                System.out.println("Waiting for instructions from peer [" + neighborId + "]");
+//                System.out.println("Waiting for instructions from peer [" + neighborId + "]");
                 MessageType messageType = (MessageType) inputStream.readObject();
 
                 switch (messageType) {
@@ -99,12 +106,10 @@ class ServerProcess implements Runnable {
                         System.out.println("!!Shutting down connection with peer [" + neighborId + "]");
                         return;
 
-                    case BIT_FIELD_LENGTH:
-                        sendBitFieldLength();
-                        break;
+//                    case BIT_FIELD_LENGTH:
+//                        sendBitFieldLength();
+//                        break;
                 }
-
-                // TODO: 11/27/2019 message to break connection and exit loop
             }
         } catch (IOException e) {
             System.out.println("Disconnected with peer [" + neighborId + "]");

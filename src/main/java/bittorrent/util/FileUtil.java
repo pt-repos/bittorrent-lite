@@ -7,12 +7,10 @@ import java.util.List;
 
 public class FileUtil {
 
-    private static final int CHUNK_SIZE = 100 * 1024; // 100KB
-
-    public static int splitFile(File f) throws IOException {
+    public static int splitFile(File f, int chunkSize) throws IOException {
         int partCounter = 0;
 
-        byte[] buffer = new byte[CHUNK_SIZE];
+        byte[] buffer = new byte[chunkSize];
 
         String fileName = f.getName();
 
@@ -34,8 +32,8 @@ public class FileUtil {
         return partCounter;
     }
 
-    public static int splitFile(String filePath) throws IOException {
-        return splitFile(new File(filePath));
+    public static int splitFile(String filePath, int chunkSize) throws IOException {
+        return splitFile(new File(filePath), chunkSize);
     }
 
     public static void mergeFiles(List<File> files, File into)
