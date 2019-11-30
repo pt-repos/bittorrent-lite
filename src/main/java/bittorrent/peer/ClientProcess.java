@@ -38,36 +38,36 @@ class ClientProcess implements Runnable {
     }
 
     private void requestNewChunk() throws IOException, ClassNotFoundException {
-        while (true) {
-            /*
-            get available bits in neighbor needed by self.
-            required_bits = (myBitSet ^ neighborBitSet) & neighborBitSet
-            */
-            BitSet neighborBitField = getNeighborBitField();
-            BitSet selfBitField = self.getBitField();
-            selfBitField.xor(neighborBitField);
-            neighborBitField.and(selfBitField);
+        /*
+        get available bits in neighbor needed by self.
+        required_bits = (myBitSet ^ neighborBitSet) & neighborBitSet
+        */
+        BitSet neighborBitField = getNeighborBitField();
+        BitSet selfBitField = self.getBitField();
+        selfBitField.xor(neighborBitField);
+        neighborBitField.and(selfBitField);
 
-            if (neighborBitField.length() == 0) {
-                System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
+        if (neighborBitField.length() == 0) {
+            System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
 
-                BitSet bitField = self.getBitField();
+            BitSet bitField = self.getBitField();
 
-                if (bitField.cardinality() == nChunks) {
-                    receivedAll = true;
-                    self.mergeChunksIntoFile(nChunks);
-                    sendShutDownMessage();
-                } else {
-                    sendStandbyMessage();
-                }
-                return;
+            if (bitField.cardinality() == nChunks) {
+                receivedAll = true;
+                self.mergeChunksIntoFile(nChunks);
+                sendShutDownMessage();
+            } else {
+                sendStandbyMessage();
             }
+            return;
+        }
 
-            List<Integer> availableChunks = new ArrayList<>();
-            for (int i = neighborBitField.nextSetBit(0); i >= 0;
-                 i = neighborBitField.nextSetBit(i+1)) {
-                availableChunks.add(i);
-            }
+        List<Integer> availableChunks = new ArrayList<>();
+        for (int i = neighborBitField.nextSetBit(0); i >= 0;
+             i = neighborBitField.nextSetBit(i+1)) {
+            availableChunks.add(i);
+        }
+        while (!availableChunks.isEmpty()) {
             int randomIndex = new Random().nextInt(availableChunks.size());
             int chunkId = availableChunks.get(randomIndex);
             if (!self.checkAndUpdateDownloadTracker(chunkId)) {
