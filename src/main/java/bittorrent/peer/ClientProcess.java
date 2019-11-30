@@ -2,9 +2,7 @@ package bittorrent.peer;
 
 import bittorrent.MessageType;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -19,11 +17,13 @@ class ClientProcess implements Runnable {
     private Peer self;
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
+    private boolean receivedAll;
 
     ClientProcess(String host, int neighborPort, Peer self) {
         this.host = host;
         this.neighborPort = neighborPort;
         this.self = self;
+        this.receivedAll = false;
     }
 
     private BitSet getNeighborBitField() throws IOException, ClassNotFoundException {
@@ -46,7 +46,16 @@ class ClientProcess implements Runnable {
 
             if (neighborBitField.length() == 0) {
                 System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
-                sendStandbyMessage();
+
+                BitSet bitField = self.getBitField();
+
+                if (bitField.cardinality() == bitField.length()) {
+                    receivedAll = true;
+                    self.mergeChunksIntoFile(bitField.length());
+                    sendShutDownMessage();
+                } else {
+                    sendStandbyMessage();
+                }
                 return;
             }
 
@@ -70,10 +79,34 @@ class ClientProcess implements Runnable {
         outputStream.flush();
     }
 
-    private void receiveChunk(int chunkId) {
+    private void sendShutDownMessage() throws IOException {
+        System.out.println("$Shutting down connection with peer [" + neighborPort + "]");
+        outputStream.writeObject(MessageType.SHUTDOWN);
+        outputStream.flush();
+    }
+
+    private void receiveChunk(int chunkId) throws IOException {
         System.out.println("Received chunk: " + chunkId + " from peer: " + neighborPort);
+
+        int bufferSize = (int) inputStream.readLong();
+        String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
+        FileOutputStream fileOutputStream = new FileOutputStream(fileName);
+        byte[] buffer = new byte[bufferSize];
+        int bytesRead;
+        while (bufferSize > 0
+                && (bytesRead = inputStream.read(buffer, 0, Math.min(buffer.length, bufferSize))) != -1) {
+
+            fileOutputStream.write(buffer, 0, bytesRead);
+            bufferSize -= bytesRead;
+        }
+        fileOutputStream.close();
         self.setBitFieldIndex(chunkId);
         self.getDownloadTracker().remove(self.getPeerId(), chunkId);
+
+        BitSet bitField = self.getBitField();
+        if (bitField.cardinality() == bitField.length()) {
+
+        }
     }
 
     private void requestBitFieldLength() throws IOException {
@@ -110,47 +143,51 @@ class ClientProcess implements Runnable {
 
             // TODO: 11/24/2019 infinite loop to handle connection of self as a client.
             // current implementation is for test purposes
-            while (true) {
+            while (!receivedAll) {
+                Thread.sleep(300);
+                try {
+                    if (null == self.getBitField()) {
+                        requestBitFieldLength();
+                    } else {
+                        requestNewChunk();
+                    }
 
-                if (null == self.getBitField()) {
-                    requestBitFieldLength();
+                    System.out.println("Waiting for message from server @ [" + neighborPort + "]");
+                    MessageType messageType = (MessageType) inputStream.readObject();
+
+                    switch (messageType) {
+                        case GET_CHUNK:
+                            int chunkId = inputStream.readInt();
+                            receiveChunk(chunkId);
+                            break;
+
+                        case STANDBY:
+                            Thread.sleep(2000);
+                            break;
+
+                        case BIT_FIELD_LENGTH:
+                            int bitFieldSize = inputStream.readInt();
+                            if (bitFieldSize > 0 && null == self.getBitField()) {
+                                self.setBitField(new BitSet(bitFieldSize));
+                            }
+                            break;
+                    }
+                } catch (SocketTimeoutException e) {
+                    System.out.println("Socket timeout: Peer [" + neighborPort + "]");
+                    self.getDownloadTracker().remove(self.getPeerId());
                 }
-                else {
-                    requestNewChunk();
-                }
-
-                System.out.println("Waiting for message from server @ [" + neighborPort + "]");
-                MessageType messageType = (MessageType) inputStream.readObject();
-
-                switch (messageType) {
-                    case GET_CHUNK:
-                        int chunkId = inputStream.readInt();
-                        receiveChunk(chunkId);
-                        break;
-
-                    case STANDBY:
-                        Thread.sleep(2000);
-                        break;
-
-                    case BIT_FIELD_LENGTH:
-                        int bitFieldSize = inputStream.readInt();
-                        if (bitFieldSize > 0 && null == self.getBitField()) {
-                            self.setBitField(new BitSet(bitFieldSize));
-                        }
-                        break;
-                }
-
                 // TODO: 11/27/2019 message to break connection and exit loop 
             }
         } catch (SocketTimeoutException e) {
-            System.out.println("Socket timeout");
-            self.getDownloadTracker().remove(self.getPeerId());
+            System.out.println("###Socket timeout: Peer [" + neighborPort + "]");
         } catch (SocketException e) {
             System.out.println("Connection with self [" + neighborPort + "] lost");
         } catch (IOException | ClassNotFoundException | InterruptedException e) {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            self.getDownloadTracker().remove(self.getPeerId());
         }
     }
 }

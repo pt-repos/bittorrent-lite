@@ -10,7 +10,7 @@ public class FileUtil {
     private static final int CHUNK_SIZE = 100 * 1024; // 100KB
 
     public static int splitFile(File f) throws IOException {
-        int partCounter = 1;
+        int partCounter = 0;
 
         byte[] buffer = new byte[CHUNK_SIZE];
 
@@ -31,7 +31,7 @@ public class FileUtil {
             }
         }
 
-        return partCounter - 1;
+        return partCounter;
     }
 
     public static int splitFile(String filePath) throws IOException {

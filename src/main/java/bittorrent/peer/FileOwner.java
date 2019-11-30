@@ -31,7 +31,6 @@ public class FileOwner extends Peer{
         System.out.println("Initializing...");
 
         divideFileIntoChunks();
-//        mergeChunksIntoFile();
 
         System.out.println("FileOwner is running");
         System.out.println("Listening for connections");

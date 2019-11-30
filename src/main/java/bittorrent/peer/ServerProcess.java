@@ -2,9 +2,7 @@ package bittorrent.peer;
 
 import bittorrent.MessageType;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
 class ServerProcess implements Runnable {
@@ -22,9 +20,33 @@ class ServerProcess implements Runnable {
 
     void sendChunk(int chunkId) throws IOException {
         System.out.println("Sending chunk: " + chunkId + "to peer: " + neighborId);
-        outputStream.writeObject(MessageType.GET_CHUNK);
-        outputStream.writeInt(chunkId);
-        outputStream.flush();
+
+
+        FileInputStream fileInputStream = null;
+        BufferedInputStream bufferedInputStream = null;
+        DataInputStream dataInputStream = null;
+        try {
+            String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
+            File file = new File(fileName);
+            long bufferSize = file.length();
+            byte[] buffer = new byte[(int) bufferSize];
+            fileInputStream = new FileInputStream(file);
+            bufferedInputStream = new BufferedInputStream(fileInputStream);
+            dataInputStream = new DataInputStream(bufferedInputStream);
+            dataInputStream.readFully(buffer, 0, buffer.length);
+
+            outputStream.writeObject(MessageType.GET_CHUNK);
+            outputStream.writeInt(chunkId);
+            outputStream.writeLong(bufferSize);
+            outputStream.write(buffer, 0, buffer.length);
+            outputStream.flush();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (null != dataInputStream) dataInputStream.close();
+            if (null != bufferedInputStream) bufferedInputStream.close();
+            if (null != fileInputStream) fileInputStream.close();
+        }
     }
 
     void sendBitField() throws IOException {
@@ -55,7 +77,7 @@ class ServerProcess implements Runnable {
             System.out.println("received CONNECTION from peer [" + neighborId + "]");
 
             while (true) {
-                System.out.println("Waiting for instructions");
+                System.out.println("Waiting for instructions from peer [" + neighborId + "]");
                 MessageType messageType = (MessageType) inputStream.readObject();
 
                 switch (messageType) {
@@ -72,6 +94,10 @@ class ServerProcess implements Runnable {
                         outputStream.writeObject(MessageType.STANDBY);
                         outputStream.flush();
                         break;
+
+                    case SHUTDOWN:
+                        System.out.println("!!Shutting down connection with peer [" + neighborId + "]");
+                        return;
 
                     case BIT_FIELD_LENGTH:
                         sendBitFieldLength();
