@@ -51,6 +51,7 @@ class ClientProcess implements Runnable {
 
                 if (bitField.cardinality() == bitField.length()) {
                     receivedAll = true;
+                    self.mergeChunksIntoFile(bitField.length());
                     sendShutDownMessage();
                 } else {
                     sendStandbyMessage();
