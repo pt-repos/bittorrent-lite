@@ -72,9 +72,6 @@ public class Peer {
     }
 
     void mergeChunksIntoFile(int nChunks) throws IOException {
-        // TODO: 11/29/2019 cleaner implementation. this is only temporary
-//        String into = String.format("./src/main/files/%d/%s", this.peerId, "cn-book.pdf");
-
         String into = String.format(
                 configProperties.getProperty("file.path.format"),
                 this.peerId,

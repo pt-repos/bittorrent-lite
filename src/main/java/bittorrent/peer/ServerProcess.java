@@ -29,7 +29,6 @@ class ServerProcess implements Runnable {
         BufferedInputStream bufferedInputStream = null;
         DataInputStream dataInputStream = null;
         try {
-//            String fileName = String.format("./src/main/files/%d/%s.%03d", self.getPeerId(), "cn-book.pdf", chunkId);
             String fileName = String.format(
                     properties.getProperty("dir.path.format") + properties.getProperty("chunk.name.format"),
                     self.getPeerId(),
@@ -63,16 +62,6 @@ class ServerProcess implements Runnable {
         outputStream.flush();
     }
 
-//    private void sendBitFieldLength() throws IOException {
-//        outputStream.writeObject(MessageType.BIT_FIELD_LENGTH);
-//        try {
-//            outputStream.writeInt(self.getBitField().length());
-//        } catch (NullPointerException e) {
-//            outputStream.writeInt(-1);
-//        }
-//        outputStream.flush();
-//    }
-
     @Override
     public void run() {
         try {
@@ -84,9 +73,7 @@ class ServerProcess implements Runnable {
             System.out.println("received CONNECTION from peer [" + neighborId + "]");
 
             while (true) {
-//                System.out.println("Waiting for instructions from peer [" + neighborId + "]");
                 MessageType messageType = (MessageType) inputStream.readObject();
-
                 switch (messageType) {
                     case BIT_FIELD:
                         sendBitField();
@@ -105,10 +92,6 @@ class ServerProcess implements Runnable {
                     case SHUTDOWN:
                         System.out.println("!!Shutting down connection with peer [" + neighborId + "]");
                         return;
-
-//                    case BIT_FIELD_LENGTH:
-//                        sendBitFieldLength();
-//                        break;
                 }
             }
         } catch (IOException e) {

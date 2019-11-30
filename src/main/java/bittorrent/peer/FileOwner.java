@@ -15,10 +15,6 @@ public class FileOwner extends Peer{
     }
 
     private void divideFileIntoChunks() throws IOException {
-//        URL filePath = getClass().getClassLoader().getResource("files/8000/cn-book.pdf");
-//        int nChunks = FileUtil.splitFile(filePath.getFile());
-//        String filePath = String.format("./src/main/files/%d/%s", this.getPeerId(), "cn-book.pdf");
-
         String filePath = String.format(
                 configProperties.getProperty("file.path.format"),
                 this.getPeerId(),
