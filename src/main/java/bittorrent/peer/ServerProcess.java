@@ -77,7 +77,7 @@ class ServerProcess implements Runnable {
             System.out.println("received CONNECTION from peer [" + neighborId + "]");
 
             while (true) {
-                System.out.println("Waiting for instructions");
+                System.out.println("Waiting for instructions from peer [" + neighborId + "]");
                 MessageType messageType = (MessageType) inputStream.readObject();
 
                 switch (messageType) {
@@ -94,6 +94,10 @@ class ServerProcess implements Runnable {
                         outputStream.writeObject(MessageType.STANDBY);
                         outputStream.flush();
                         break;
+
+                    case SHUTDOWN:
+                        System.out.println("!!Shutting down connection with peer [" + neighborId + "]");
+                        return;
 
                     case BIT_FIELD_LENGTH:
                         sendBitFieldLength();

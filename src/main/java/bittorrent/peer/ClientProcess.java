@@ -17,11 +17,13 @@ class ClientProcess implements Runnable {
     private Peer self;
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
+    private boolean receivedAll;
 
     ClientProcess(String host, int neighborPort, Peer self) {
         this.host = host;
         this.neighborPort = neighborPort;
         this.self = self;
+        this.receivedAll = false;
     }
 
     private BitSet getNeighborBitField() throws IOException, ClassNotFoundException {
@@ -44,7 +46,15 @@ class ClientProcess implements Runnable {
 
             if (neighborBitField.length() == 0) {
                 System.out.println("No New chunk available at this moment @ peer: " + neighborPort);
-                sendStandbyMessage();
+
+                BitSet bitField = self.getBitField();
+
+                if (bitField.cardinality() == bitField.length()) {
+                    receivedAll = true;
+                    sendShutDownMessage();
+                } else {
+                    sendStandbyMessage();
+                }
                 return;
             }
 
@@ -68,6 +78,12 @@ class ClientProcess implements Runnable {
         outputStream.flush();
     }
 
+    private void sendShutDownMessage() throws IOException {
+        System.out.println("$Shutting down connection with peer [" + neighborPort + "]");
+        outputStream.writeObject(MessageType.SHUTDOWN);
+        outputStream.flush();
+    }
+
     private void receiveChunk(int chunkId) throws IOException {
         System.out.println("Received chunk: " + chunkId + " from peer: " + neighborPort);
 
@@ -85,6 +101,11 @@ class ClientProcess implements Runnable {
         fileOutputStream.close();
         self.setBitFieldIndex(chunkId);
         self.getDownloadTracker().remove(self.getPeerId(), chunkId);
+
+        BitSet bitField = self.getBitField();
+        if (bitField.cardinality() == bitField.length()) {
+
+        }
     }
 
     private void requestBitFieldLength() throws IOException {
@@ -121,8 +142,8 @@ class ClientProcess implements Runnable {
 
             // TODO: 11/24/2019 infinite loop to handle connection of self as a client.
             // current implementation is for test purposes
-            while (true) {
-                Thread.sleep(200);
+            while (!receivedAll) {
+                Thread.sleep(300);
                 try {
                     if (null == self.getBitField()) {
                         requestBitFieldLength();
@@ -151,13 +172,13 @@ class ClientProcess implements Runnable {
                             break;
                     }
                 } catch (SocketTimeoutException e) {
-                    System.out.println("Socket TimeOut");
+                    System.out.println("Socket timeout: Peer [" + neighborPort + "]");
                     self.getDownloadTracker().remove(self.getPeerId());
                 }
                 // TODO: 11/27/2019 message to break connection and exit loop 
             }
         } catch (SocketTimeoutException e) {
-            System.out.println("###Socket timeout");
+            System.out.println("###Socket timeout: Peer [" + neighborPort + "]");
         } catch (SocketException e) {
             System.out.println("Connection with self [" + neighborPort + "] lost");
         } catch (IOException | ClassNotFoundException | InterruptedException e) {
