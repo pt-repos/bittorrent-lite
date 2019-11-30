@@ -26,5 +26,3 @@ hs_err_pid*
 *.idea
 *.iml
 
-# directory for storing p2p transfer files and chunks.
-files/
