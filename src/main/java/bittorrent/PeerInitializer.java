@@ -17,6 +17,11 @@ public class PeerInitializer {
             Properties configProperties = new Properties();
             configProperties.load(inputStream);
 
+            double fileSize = Integer.parseInt(configProperties.getProperty("file.size"));
+            double chunkSize = Integer.parseInt(configProperties.getProperty("chunk.size"));
+            int nChunks = (int) Math.ceil(fileSize/chunkSize);
+            configProperties.setProperty("chunk.count", String.valueOf(nChunks));
+
             if (args.length < 2) {
                 FileOwner fileOwner = new FileOwner(peerId, configProperties);
                 fileOwner.start();
